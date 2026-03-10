@@ -31,19 +31,20 @@ if (empty($_SESSION["login"])) {
                 <div class="card-body">
                     <?php if (isset($_SESSION['msg'])): ?>
                         <div class="alert alert-info">
-                            <?php echo $_SESSION['msg']; unset($_SESSION['msg']); ?>
+                            <?php echo $_SESSION['msg'];
+                            unset($_SESSION['msg']); ?>
                         </div>
                     <?php endif; ?>
 
                     <?php
-                        switch (@$_REQUEST['page']) {
-                            case 'editar':
-                                include('editar-perfil.php');
-                                break;
-                            default:
-                                include('perfil-view.php');
-                                break;
-                        }
+                    switch (@$_REQUEST['page']) {
+                        case 'editar':
+                            include('editar-perfil.php');
+                            break;
+                        default:
+                            include('perfil-view.php');
+                            break;
+                    }
                     ?>
                 </div>
             </div>
@@ -55,6 +56,16 @@ if (empty($_SESSION["login"])) {
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Correção de Z-Index para Modais Bootstrap aninhados:
+        // Evita que a tela fique cinza (backdrop por cima) movendo o modal para fora do .card e pro body
+        document.addEventListener("DOMContentLoaded", function() {
+            var modals = document.querySelectorAll('.modal');
+            for (var i = 0; i < modals.length; i++) {
+                document.body.appendChild(modals[i]);
+            }
+        });
+    </script>
 </body>
 
 </html>

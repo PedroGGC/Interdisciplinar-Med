@@ -36,56 +36,75 @@ include('../../cfg/config.php');
         <?php include('../../includes/menu-lateral-coordenacao.php'); ?>
     </header>
     <main>
-        <div class="container mt-3">
-            <div class="card">
-                <div class="card-body">
-                    <h3>Lista de Preceptores</h3>
-                    <button class="btn btn-primary mb-3" onclick="location.href='associar-preceptor.php'">Gerenciar Preceptores</button>
-                    <table class="table table-striped table-secondary table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>CRM</th>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Telefone</th>
-                                <th>Unidade</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "
-                                SELECT u.*, un.nome_unidade 
-                                FROM usuarios u
-                                LEFT JOIN preceptores_unidades pu ON u.idusuario = pu.idusuario
-                                LEFT JOIN unidades un ON pu.idunidade = un.idunidade
-                                WHERE u.tipo = 1
-                            ";
-                            $res = $conn->query($sql);
+        <div class="container mt-4">
+            <div class="page-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Lista de Preceptores</h2>
+                    <p class="text-muted mb-0">Gestão de profissionais e vínculos hospitalares</p>
+                </div>
+                <button class="btn btn-primary" onclick="location.href='associar-preceptor.php'"><i class="bi bi-gear me-2"></i>Gerenciar Vínculos</button>
+            </div>
 
-                            if (!$res) {
-                                die("Erro na consulta: " . $conn->error);
-                            }
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th>Preceptor</th>
+                                    <th>CRM / Registro</th>
+                                    <th>Status</th>
+                                    <th>Unidade Vinculada</th>
+                                    <th>Contato</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $sql = "
+                                    SELECT u.*, un.nome_unidade 
+                                    FROM usuarios u
+                                    LEFT JOIN preceptores_unidades pu ON u.idusuario = pu.idusuario
+                                    LEFT JOIN unidades un ON pu.idunidade = un.idunidade
+                                    WHERE u.tipo = 1
+                                    ORDER BY u.nome ASC
+                                ";
+                                $res = $conn->query($sql);
 
-                            $qtd = $res->num_rows;
-
-                            if ($qtd > 0) {
-                                while ($row = $res->fetch_object()) {
-                                    echo "<tr>";
-                                    echo "<td>" . htmlspecialchars($row->nome) . "</td>";
-                                    echo "<td>" . htmlspecialchars($row->registro) . "</td>";
-                                    echo "<td>" . htmlspecialchars($row->email) . "</td>";
-                                    echo "<td>" . ativoTexto($row->ativo) . "</td>";
-                                    echo "<td>" . htmlspecialchars($row->telefone) . "</td>";
-                                    echo "<td>" . htmlspecialchars($row->nome_unidade ?? 'Não Associado') . "</td>";
-                                    echo "</tr>";
+                                if (!$res) {
+                                    die("Erro na consulta: " . $conn->error);
                                 }
-                             } else {
-                                echo "<tr><td colspan='6'>Nenhum preceptor encontrado.</td></tr>";
-                            }
-                            ?>
-                        </tbody>
-                    </table>
+
+                                if ($res->num_rows > 0) {
+                                    while ($row = $res->fetch_object()) {
+                                        $statusClass = $row->ativo == '1' ? 'badge-success-glow' : 'badge-warning-glow';
+                                        $statusText = $row->ativo == '1' ? 'Ativo' : 'Inativo';
+                                        $unidade = $row->nome_unidade ?? 'Não Associado';
+                                        
+                                        echo "<tr>";
+                                        echo "<td>
+                                                <div class='d-flex align-items-center'>
+                                                    <div class='btn-action me-3' style='pointer-events: none;'>
+                                                        <i class='bi bi-person-badge'></i>
+                                                    </div>
+                                                    <span class='fw-medium text-white'>" . htmlspecialchars($row->nome) . "</span>
+                                                </div>
+                                              </td>";
+                                        echo "<td><span class='font-monospace text-muted'>" . htmlspecialchars($row->registro) . "</span></td>";
+                                        echo "<td><span class='badge-pill-glow $statusClass'>$statusText</span></td>";
+                                        echo "<td><span class='badge-pill-glow " . ($row->nome_unidade ? 'badge-info-glow' : '') . "' style='" . (!$row->nome_unidade ? 'background:rgba(255,255,255,0.05); color:var(--text-muted);' : '') . "'>" . htmlspecialchars($unidade) . "</span></td>";
+                                        echo "<td>
+                                                <div class='small text-muted mb-1'><i class='bi bi-envelope me-1'></i> " . htmlspecialchars($row->email) . "</div>
+                                                <div class='small text-muted'><i class='bi bi-telephone me-1'></i> " . htmlspecialchars($row->telefone) . "</div>
+                                              </td>";
+                                        echo "</tr>";
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='5' class='text-center py-5 text-muted'>Nenhum preceptor encontrado.</td></tr>";
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

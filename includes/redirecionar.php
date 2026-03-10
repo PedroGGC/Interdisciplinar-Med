@@ -15,7 +15,6 @@ if (isset($_SESSION["tipo"])) {
         echo "<script>location.href='" . BASE_URL . "/cadastro_e_login/novocadastro.php';</script>";
     }
 } else {
-    echo "<script>alert('Login expirado!');location.href='" . BASE_URL . "/pages/coordenacao/home.php';</script>";
+    echo "<script>location.href='" . BASE_URL . "/index.php';</script>";
     exit();
 }
-var_dump($tipo);

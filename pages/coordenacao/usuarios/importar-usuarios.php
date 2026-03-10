@@ -5,10 +5,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
         $file = $_FILES['file']['tmp_name'];
         $fileSize = $_FILES['file']['size'];
+        $originalName = $_FILES['file']['name'];
         $fileType = mime_content_type($file);
 
-        if ($fileType !== 'text/plain' && $fileType !== 'text/csv') {
-            echo "<div class='alert alert-danger'>Erro: Apenas arquivos CSV são permitidos.</div>";
+        // Fallback para quando o mime_content_type não é confiável (ex: arquivos .tmp no Windows)
+        // ou se o fallback em config.php retornou application/octet-stream
+        if ($fileType === 'application/octet-stream' || $fileType === false) {
+            $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            if ($ext === 'csv') {
+                $fileType = 'text/csv';
+            } elseif ($ext === 'txt') {
+                $fileType = 'text/plain';
+            }
+        }
+
+        if ($fileType !== 'text/plain' && $fileType !== 'text/csv' && $fileType !== 'application/vnd.ms-excel') {
+            echo "<div class='alert alert-danger'>Erro: Apenas arquivos CSV são permitidos. (Tipo detectado: $fileType)</div>";
             echo "<a href=\"?page=listar-usuarios\" class=\"btn btn-secondary\">Voltar</a>";
             exit();
         }
@@ -20,57 +32,83 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (($handle = fopen($file, "r")) !== false) {
-            fgetcsv($handle);
+            fgetcsv($handle, 0, ",", "\"", "\\");
 
             $success_count = 0;
             $error_count = 0;
             $duplicated_count = 0;
+            $messages = [];
 
-            while (($data = fgetcsv($handle, 1000, ",")) !== false) {
-                $nome = $data[0];
-                $email = $data[1];
-                $telefone = $data[2];
-                $login = $data[3];
-                $senha = password_hash($data[4], PASSWORD_DEFAULT);
-                $tipo = $data[5];
-                $registro = $data[6];
-                $ativo = $data[7];
-                $periodo = $data[8];
+            // Aumenta o tempo limite para processos longos
+            set_time_limit(120);
 
-                if (empty($nome) || empty($email) || empty($telefone) || empty($periodo) || empty($login) || empty($senha) || empty($registro) || empty($ativo) || !filter_var($email, FILTER_VALIDATE_EMAIL) || !in_array($tipo, [0, 1])) {
-                    echo "<div class='alert alert-danger'>Dados inválidos na linha com login '$login'.</div>";
-                    $error_count++;
-                    continue;
-                }
+            // Prepara as consultas fora do loop para performance
+            $checkStmt = $conn->prepare("SELECT idusuario FROM usuarios WHERE login = ?");
+            $insertStmt = $conn->prepare("INSERT INTO usuarios (nome, email, telefone, login, senha, tipo, registro, ativo, periodo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-                $stmt = $conn->prepare("SELECT idusuario FROM usuarios WHERE login = ?");
-                $stmt->bind_param("s", $login);
-                $stmt->execute();
-                $stmt->store_result();
+            // Inicia transação para acelerar múltiplas inserções
+            $conn->begin_transaction();
 
-                if ($stmt->num_rows > 0) {
-                    echo "<div class='alert alert-warning'>O login '$login' já existe. Pulei esta linha.</div>";
-                    $duplicated_count++;
-                } else {
-                    $stmt = $conn->prepare("INSERT INTO usuarios (nome, email, telefone, login, senha, tipo, registro, ativo, periodo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssssisii", $nome, $email, $telefone, $login, $senha, $tipo, $registro, $ativo, $periodo);
+            try {
+                while (($data = fgetcsv($handle, 1000, ",", "\"", "\\")) !== false) {
+                    if (count($data) < 9) continue;
 
-                    if ($stmt->execute()) {
+                    $nome = $data[0];
+                    $email = $data[1];
+                    $telefone = $data[2];
+                    $login = $data[3];
+                    $senha_plana = $data[4];
+                    $tipo = $data[5];
+                    $registro = $data[6];
+                    $ativo = $data[7];
+                    $periodo = $data[8];
+
+                    if (empty($nome) || empty($email) || empty($login) || empty($senha_plana)) {
+                        $messages[] = "<div class='alert alert-danger'>Dados obrigatórios faltando para o login '$login'.</div>";
+                        $error_count++;
+                        continue;
+                    }
+
+                    // Verifica se já existe
+                    $checkStmt->bind_param("s", $login);
+                    $checkStmt->execute();
+                    $checkStmt->store_result();
+
+                    if ($checkStmt->num_rows > 0) {
+                        $duplicated_count++;
+                        continue;
+                    }
+
+                    // Hash da senha
+                    $senha_hash = password_hash($senha_plana, PASSWORD_DEFAULT);
+
+                    $insertStmt->bind_param("sssssisii", $nome, $email, $telefone, $login, $senha_hash, $tipo, $registro, $ativo, $periodo);
+
+                    if ($insertStmt->execute()) {
                         $success_count++;
                     } else {
-                        echo "<div class='alert alert-danger'>Erro ao inserir o usuário '$login'.</div>";
+                        $messages[] = "<div class='alert alert-danger'>Erro ao inserir o usuário '$login'.</div>";
                         $error_count++;
                     }
                 }
+                $conn->commit();
+            } catch (Exception $e) {
+                $conn->rollback();
+                $messages[] = "<div class='alert alert-danger'>Erro crítico: " . $e->getMessage() . "</div>";
             }
+
             fclose($handle);
+            $checkStmt->close();
+            $insertStmt->close();
 
             echo "<div class='alert alert-success'>$success_count usuários importados com sucesso.</div>";
             if ($duplicated_count > 0) {
-                echo "<div class='alert alert-warning'>$duplicated_count usuários já existiam e foram ignorados.</div>";
+                echo "<div class='alert alert-warning'>$duplicated_count logins já existiam e foram ignorados.</div>";
             }
             if ($error_count > 0) {
                 echo "<div class='alert alert-danger'>$error_count erros durante a importação.</div>";
+                foreach (array_slice($messages, 0, 5) as $msg) echo $msg;
+                if (count($messages) > 5) echo "<div class='alert alert-info'>...e mais " . (count($messages) - 5) . " erros.</div>";
             }
         } else {
             echo "<div class='alert alert-danger'>Erro ao abrir o arquivo.</div>";

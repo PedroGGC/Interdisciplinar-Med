@@ -121,21 +121,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="../../../css/style.css">
     <style>
-        body {
-            overflow-y: hidden;
-        }
-
         .container-card {
-            display: flex;
-            gap: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
         }
 
-        .card {
-            width: 800px;
-            padding: 10px;
-            margin: 10px;
+        @media (max-width: 992px) {
+            .container-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scroll-card {
+            max-height: 400px;
             overflow-y: auto;
-            max-height: 650px;
+        }
+        
+        .card-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--surface-2) !important;
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -148,7 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function submitForm(event, form) {
             event.preventDefault();
             const formData = $(form).serialize();
-            console.log('Dados do formulário:', formData);
 
             $.ajax({
                 type: 'POST',
@@ -156,7 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 data: formData,
                 dataType: 'json',
                 success: function(response) {
-                    console.log('Resposta do servidor:', response);
                     if (response.success) {
                         alert(response.message);
                         location.reload();
@@ -168,9 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Erro na solicitação AJAX:', error);
-                    console.log('Status:', status);
-                    console.log('Resposta completa:', xhr.responseText);
                     alert('Ocorreu um erro ao processar sua solicitação.');
                 }
             });
@@ -179,155 +182,181 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="container mt-3">
-        <h3>
-            <?php echo htmlspecialchars($unidade['nome_unidade']); ?>
-            <button class="btn btn-secondary" onclick="location.href='unidades.php'">Voltar</button>
-        </h3>
-        <div class="container-card">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Módulos Associados à Unidade</h5>
-                    <div class="form-check">
-                        <input type="checkbox" id="selectAllAssociados" class="form-check-input"
-                            onchange="toggleCheckboxes(this, 'modulo-associado')">
-                        <label for="selectAllAssociados" class="form-check-label">Selecionar Todos</label>
-                    </div>
+    <header>
+        <?php include('../../../includes/navbar.php'); ?>
+        <?php include('../../../includes/menu-lateral-coordenacao.php'); ?>
+    </header>
+    <main>
+        <div class="container mt-4">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1"><?php echo htmlspecialchars($unidade['nome_unidade']); ?></h2>
+                    <p class="text-muted mb-0">Gestão de vínculos e alocação de módulos/preceptores</p>
                 </div>
-                <div class="card-body">
-                    <form method="POST" onsubmit="submitForm(event, this)">
-                        <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
-                        <input type="hidden" name="acao" value="desassociar">
-                        <?php if ($nummodulosAssociados > 0): ?>
-                            <?php while ($modulo = $modulosAssociados->fetch_assoc()): ?>
-                                <div class="form-check">
-                                    <input type="checkbox" name="modulos[]" value="<?php echo $modulo['idmodulo']; ?>"
-                                        class="form-check-input modulo-associado"
-                                        id="modulo-<?php echo $modulo['idmodulo']; ?>">
-                                    <label class="form-check-label" for="modulo-<?php echo $modulo['idmodulo']; ?>">
-                                        <?php echo htmlspecialchars($modulo['nome_modulo']); ?>
-                                    </label>
-                                </div>
-                            <?php endwhile; ?>
-                            <button type="submit" class="btn btn-danger mt-3">Desassociar Módulos</button>
-                        <?php else: ?>
-                            <p>Nenhum módulo associado.</p>
-                        <?php endif; ?>
-                    </form>
-                </div>
+                <button class="btn btn-secondary px-4" onclick="location.href='unidades.php'"><i class="bi bi-arrow-left me-1"></i> Voltar</button>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h5>Módulos Não Associados à Unidade</h5>
-                    <div class="form-check">
-                        <input type="checkbox" id="selectAllNaoAssociados" class="form-check-input"
-                            onchange="toggleCheckboxes(this, 'modulo-nao-associado')">
-                        <label for="selectAllNaoAssociados" class="form-check-label">Selecionar Todos</label>
+            <h5 class="mb-3 text-accent-light"><i class="bi bi-journal-text me-2"></i>Vínculo de Módulos</h5>
+            <div class="container-card">
+                <!-- Módulos Associados -->
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="card-header border-bottom border-border p-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-white">Módulos Vinculados</h6>
+                        <span class="badge-pill-glow badge-success-glow"><?php echo $nummodulosAssociados; ?></span>
                     </div>
-                </div>
-                <div class="card-body">
-                    <form method="POST" onsubmit="submitForm(event, this)">
-                        <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
-                        <input type="hidden" name="acao" value="associar">
-                        <?php if ($nummodulosNaoAssociados > 0): ?>
-                            <?php while ($modulo = $modulosNaoAssociados->fetch_assoc()): ?>
-                                <div class="form-check">
-                                    <input type="checkbox" name="modulos[]" value="<?php echo $modulo['idmodulo']; ?>"
-                                        class="form-check-input modulo-nao-associado"
-                                        id="modulo-<?php echo $modulo['idmodulo']; ?>">
-                                    <label class="form-check-label" for="modulo-<?php echo $modulo['idmodulo']; ?>">
-                                        <?php echo htmlspecialchars($modulo['nome_modulo']); ?>
-                                    </label>
-                                </div>
-                            <?php endwhile; ?>
-                            <button type="submit" class="btn btn-primary mt-3">Associar Módulos</button>
-                        <?php else: ?>
-                            <p>Nenhum módulo disponível para associação.</p>
-                        <?php endif; ?>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gerenciar Preceptores -->
-        <div class="container-card">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Preceptores Associados</h5>
-                    <div class="form-check">
-                        <input type="checkbox" id="selectAllAssociadosPreceptores" class="form-check-input" onchange="toggleCheckboxes(this, 'preceptor-associado')">
-                        <label for="selectAllAssociadosPreceptores" class="form-check-label">Selecionar Todos</label>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form method="POST" onsubmit="submitForm(event, this)">
-                        <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
-                        <input type="hidden" name="acao" value="desassociar">
-                        <?php mysqli_data_seek($resPreceptores, 0); // Reset result set pointer ?>
-                        <?php if ($resPreceptores->num_rows > 0): ?>
-                            <?php while ($preceptor = $resPreceptores->fetch_assoc()): ?>
-                                <?php if (!is_null($preceptor['idunidade']) && $preceptor['idunidade'] == $idunidade): ?>
-                                    <div class="form-check">
-                                        <input type="checkbox" name="preceptores[]" value="<?php echo $preceptor['idusuario']; ?>" class="form-check-input preceptor-associado">
-                                        <label class="form-check-label"><?php echo htmlspecialchars($preceptor['nome']); ?> - <?php echo htmlspecialchars($preceptor['nome_unidade']); ?></label>
-                                    </div>
+                    <div class="card-body p-0 scroll-card">
+                        <form method="POST" onsubmit="submitForm(event, this)">
+                            <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
+                            <input type="hidden" name="acao" value="desassociar">
+                            <div class="list-group list-group-flush">
+                                <?php if ($nummodulosAssociados > 0): ?>
+                                    <?php while ($modulo = $modulosAssociados->fetch_assoc()): ?>
+                                        <div class="list-group-item bg-transparent border-border p-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="modulos[]" value="<?php echo $modulo['idmodulo']; ?>"
+                                                    class="form-check-input modulo-associado"
+                                                    id="modulo-<?php echo $modulo['idmodulo']; ?>">
+                                                <label class="form-check-label text-white ms-2" for="modulo-<?php echo $modulo['idmodulo']; ?>">
+                                                    <?php echo htmlspecialchars($modulo['nome_modulo']); ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <div class="p-4 text-center text-muted small">Nenhum módulo vinculado.</div>
                                 <?php endif; ?>
-                            <?php endwhile; ?>
-                            <button type="submit" class="btn btn-danger mt-3">Desassociar Preceptores</button>
-                        <?php else: ?>
-                            <p>Nenhum preceptor associado.</p>
-                        <?php endif; ?>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Preceptores Não Associados -->
-            <div class="card">
-                <div class="card-header">
-                    <h5>Preceptores Não Associados</h5>
-                    <?php
-                    // Resetar o ponteiro do resultado para reutilizá-lo
-                    mysqli_data_seek($resPreceptores, 0);
-                    
-                    $preceptoresNaoAssociados = [];
-                    while ($preceptor = $resPreceptores->fetch_assoc()) {
-                        if (is_null($preceptor['idunidade'])) {
-                            $preceptoresNaoAssociados[] = $preceptor;
-                        }
-                    }
-                    if (count($preceptoresNaoAssociados) > 0): ?>
-                        <div class="form-check">
-                            <input type="checkbox" id="selectAllNaoAssociadosPreceptores" class="form-check-input" onchange="toggleCheckboxes(this, 'preceptor-nao-associado')">
-                            <label for="selectAllNaoAssociadosPreceptores" class="form-check-label">Selecionar Todos</label>
-                        </div>
+                            </div>
+                            <?php if ($nummodulosAssociados > 0): ?>
+                                <div class="p-3 bg-surface-2 border-top border-border">
+                                    <button type="submit" class="btn btn-danger btn-sm w-100">Desvincular Selecionados</button>
+                                </div>
+                            <?php endif; ?>
+                        </form>
                     </div>
-                    <div class="card-body">
+                </div>
+
+                <!-- Módulos Disponíveis -->
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="card-header border-bottom border-border p-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-white">Módulos Disponíveis</h6>
+                        <span class="badge-pill-glow badge-info-glow"><?php echo $nummodulosNaoAssociados; ?></span>
+                    </div>
+                    <div class="card-body p-0 scroll-card">
                         <form method="POST" onsubmit="submitForm(event, this)">
                             <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
                             <input type="hidden" name="acao" value="associar">
-                            <?php foreach ($preceptoresNaoAssociados as $preceptor): ?>
-                                <div class="form-check">
-                                    <input type="checkbox" name="preceptores[]" value="<?php echo $preceptor['idusuario']; ?>" class="form-check-input preceptor-nao-associado">
-                                    <label class="form-check-label"><?php echo htmlspecialchars($preceptor['nome']); ?></label>
+                            <div class="list-group list-group-flush">
+                                <?php if ($nummodulosNaoAssociados > 0): ?>
+                                    <?php while ($modulo = $modulosNaoAssociados->fetch_assoc()): ?>
+                                        <div class="list-group-item bg-transparent border-border p-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="modulos[]" value="<?php echo $modulo['idmodulo']; ?>"
+                                                    class="form-check-input modulo-nao-associado"
+                                                    id="modulo-dispo-<?php echo $modulo['idmodulo']; ?>">
+                                                <label class="form-check-label text-white ms-2" for="modulo-dispo-<?php echo $modulo['idmodulo']; ?>">
+                                                    <?php echo htmlspecialchars($modulo['nome_modulo']); ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <div class="p-4 text-center text-muted small">Nenhum módulo disponível.</div>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($nummodulosNaoAssociados > 0): ?>
+                                <div class="p-3 bg-surface-2 border-top border-border">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">Vincular Selecionados</button>
                                 </div>
-                            <?php endforeach; ?>
-                            <button type="submit" class="btn btn-primary mt-3">Associar Preceptores</button>
-                        <?php else: ?>
-                            <p>Não há nenhum preceptor desassociado no momento.</p>
-                        <?php endif; ?>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="mb-3 text-accent-light"><i class="bi bi-person-badge me-2"></i>Vínculo de Preceptores</h5>
+            <div class="container-card pb-5">
+                <!-- Preceptores Vinculados -->
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="card-header border-bottom border-border p-3">
+                        <h6 class="mb-0 text-white">Preceptores na Unidade</h6>
+                    </div>
+                    <div class="card-body p-0 scroll-card">
+                        <form method="POST" onsubmit="submitForm(event, this)">
+                            <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
+                            <input type="hidden" name="acao" value="desassociar">
+                            <div class="list-group list-group-flush">
+                                <?php mysqli_data_seek($resPreceptores, 0); 
+                                $countP = 0;
+                                while ($preceptor = $resPreceptores->fetch_assoc()): ?>
+                                    <?php if (!is_null($preceptor['idunidade']) && $preceptor['idunidade'] == $idunidade): $countP++; ?>
+                                        <div class="list-group-item bg-transparent border-border p-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="preceptores[]" value="<?php echo $preceptor['idusuario']; ?>" class="form-check-input preceptor-associado" id="pre-vinc-<?php echo $preceptor['idusuario']; ?>">
+                                                <label class="form-check-label text-white ms-2" for="pre-vinc-<?php echo $preceptor['idusuario']; ?>">
+                                                    <?php echo htmlspecialchars($preceptor['nome']); ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endwhile; ?>
+                                <?php if ($countP == 0): ?>
+                                    <div class="p-4 text-center text-muted small">Nenhum preceptor vinculado.</div>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($countP > 0): ?>
+                                <div class="p-3 bg-surface-2 border-top border-border">
+                                    <button type="submit" class="btn btn-danger btn-sm w-100">Remover Selecionados</button>
+                                </div>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Preceptores Disponíveis -->
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="card-header border-bottom border-border p-3">
+                        <h6 class="mb-0 text-white">Preceptores Disponíveis</h6>
+                    </div>
+                    <div class="card-body p-0 scroll-card">
+                        <form method="POST" onsubmit="submitForm(event, this)">
+                            <input type="hidden" name="idunidade" value="<?php echo $idunidade; ?>">
+                            <input type="hidden" name="acao" value="associar">
+                            <div class="list-group list-group-flush">
+                                <?php mysqli_data_seek($resPreceptores, 0);
+                                $countD = 0;
+                                while ($preceptor = $resPreceptores->fetch_assoc()): ?>
+                                    <?php if (is_null($preceptor['idunidade'])): $countD++; ?>
+                                        <div class="list-group-item bg-transparent border-border p-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="preceptores[]" value="<?php echo $preceptor['idusuario']; ?>" class="form-check-input preceptor-nao-associado" id="pre-disp-<?php echo $preceptor['idusuario']; ?>">
+                                                <label class="form-check-label text-white ms-2" for="pre-disp-<?php echo $preceptor['idusuario']; ?>">
+                                                    <?php echo htmlspecialchars($preceptor['nome']); ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endwhile; ?>
+                                <?php if ($countD == 0): ?>
+                                    <div class="p-4 text-center text-muted small">Nenhum preceptor livre.</div>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($countD > 0): ?>
+                                <div class="p-3 bg-surface-2 border-top border-border">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">Vincular Selecionados</button>
+                                </div>
+                            <?php endif; ?>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
     <footer>
-        <div class="card footer-home rounded-0">
-            <div class="card-body">
-            </div>
+        <div class="footer-home rounded-0">
+            <div class="card-body"></div>
         </div>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

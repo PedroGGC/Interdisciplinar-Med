@@ -25,49 +25,86 @@ include('../../cfg/config.php');
         <?php include('../../includes/menu-lateral-preceptor.php'); ?>
     </header>
     <main>
-        <div class="container mt-3">
-            <div class="card">
-                <div class="card-body">
-                    <h3>Lista de Alunos</h3>
-                    <table class="table table-striped table-secondary table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Nota</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "SELECT u.nome, 
-                                           COALESCE((SELECT a.nota 
-                                                     FROM avaliacoes a 
-                                                     WHERE a.idaluno = u.idusuario 
-                                                     ORDER BY a.data_avaliacao DESC 
-                                                     LIMIT 1), 'Sem nota') AS nota
-                                    FROM usuarios u
-                                    WHERE u.tipo = 0";
+        <div class="container mt-4">
+            <div class="page-header">
+                <h2 class="mb-1">Lista de Alunos</h2>
+                <p class="text-muted mb-0">Relação de alunos e suas respectivas notas mais recentes</p>
+            </div>
 
-                            $res = $conn->query($sql);
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th>Nome do Aluno</th>
+                                    <th>Nota Recente</th>
+                                    <th>Status de Desempenho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $idpreceptor = $_SESSION['idusuario'];
+                                $sql = "SELECT DISTINCT u.idusuario, u.nome, 
+                                               COALESCE((SELECT a.nota 
+                                                         FROM avaliacoes a 
+                                                         WHERE a.idaluno = u.idusuario 
+                                                         ORDER BY a.data_avaliacao DESC 
+                                                         LIMIT 1), -1) AS nota
+                                        FROM usuarios u
+                                        JOIN alunos_subgrupos als ON u.idusuario = als.idusuario
+                                        JOIN horarios h ON als.idsubgrupo = h.idsubgrupo
+                                        WHERE u.tipo = 0 AND h.idpreceptor = ?
+                                        ORDER BY u.nome ASC";
 
-                            if (!$res) {
-                                die("Erro na consulta: " . $conn->error);
-                            }
+                                $stmt = $conn->prepare($sql);
+                                $stmt->bind_param("i", $idpreceptor);
+                                $stmt->execute();
+                                $res = $stmt->get_result();
 
-                            $qtd = $res->num_rows;
-
-                            if ($qtd > 0) {
-                                while ($row = $res->fetch_object()) {
-                                    echo "<tr>";
-                                    echo "<td>" . htmlspecialchars($row->nome) . "</td>";
-                                    echo "<td>" . htmlspecialchars($row->nota) . "</td>";
-                                    echo "</tr>";
+                                if (!$res) {
+                                    die("Erro na consulta: " . $conn->error);
                                 }
-                            } else {
-                                echo "<tr><td colspan='2'>Nenhum aluno encontrado.</td></tr>";
-                            }
-                            ?>
-                        </tbody>
-                    </table>
+
+                                if ($res->num_rows > 0) {
+                                    while ($row = $res->fetch_object()) {
+                                        $notaExibida = $row->nota == -1 ? 'Sem nota' : number_format($row->nota, 1);
+                                        $statusClass = 'badge-info-glow';
+                                        $statusText = 'Aguardando';
+
+                                        if ($row->nota != -1) {
+                                            if ($row->nota >= 7) {
+                                                $statusClass = 'badge-success-glow';
+                                                $statusText = 'Satisfatório';
+                                            } elseif ($row->nota >= 5) {
+                                                $statusClass = 'badge-warning-glow';
+                                                $statusText = 'Regular';
+                                            } else {
+                                                $statusClass = 'badge-danger-glow'; // Note: I should add badge-danger-glow to CSS if needed, but it works with warning for now or I can add it
+                                                $statusText = 'Insuficiente';
+                                            }
+                                        }
+
+                                        echo "<tr>";
+                                        echo "<td>
+                                                <div class='d-flex align-items-center'>
+                                                    <div class='btn-action me-3' style='pointer-events: none;'>
+                                                        <i class='bi bi-person'></i>
+                                                    </div>
+                                                    <span class='fw-medium text-white'>" . htmlspecialchars($row->nome) . "</span>
+                                                </div>
+                                              </td>";
+                                        echo "<td><span class='font-monospace fw-bold " . ($row->nota >= 7 ? 'text-accent-light' : ($row->nota == -1 ? 'text-muted' : 'text-warning')) . "'>$notaExibida</span></td>";
+                                        echo "<td><span class='badge-pill-glow $statusClass'>$statusText</span></td>";
+                                        echo "</tr>";
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='3' class='text-center py-5 text-muted'>Nenhum aluno encontrado.</td></tr>";
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

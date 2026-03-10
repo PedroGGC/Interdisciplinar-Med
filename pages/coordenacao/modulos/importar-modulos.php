@@ -5,10 +5,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
         $file = $_FILES['file']['tmp_name'];
         $fileSize = $_FILES['file']['size'];
+        $originalName = $_FILES['file']['name'];
         $fileType = mime_content_type($file);
 
-        if ($fileType !== 'text/plain' && $fileType !== 'text/csv') {
-            echo "<div class='alert alert-danger'>Erro: Apenas arquivos CSV são permitidos.</div>";
+        // Fallback para quando o mime_content_type não é confiável (ex: arquivos .tmp no Windows)
+        // ou se o fallback em config.php retornou application/octet-stream
+        if ($fileType === 'application/octet-stream' || $fileType === false) {
+            $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            if ($ext === 'csv') {
+                $fileType = 'text/csv';
+            } elseif ($ext === 'txt') {
+                $fileType = 'text/plain';
+            }
+        }
+
+        if ($fileType !== 'text/plain' && $fileType !== 'text/csv' && $fileType !== 'application/vnd.ms-excel') {
+            echo "<div class='alert alert-danger'>Erro: Apenas arquivos CSV são permitidos. (Tipo detectado: $fileType)</div>";
             echo "<a href=\"?page=listar-modulos\" class=\"btn btn-secondary\">Voltar</a>";
             exit();
         }
@@ -20,13 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (($handle = fopen($file, "r")) !== false) {
-            fgetcsv($handle);
+            fgetcsv($handle, 0, ",", "\"", "\\");
 
             $success_count = 0;
             $error_count = 0;
             $duplicated_count = 0;
 
-            while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+            while (($data = fgetcsv($handle, 1000, ",", "\"", "\\")) !== false) {
                 $nome_modulo = $data[0];
                 $periodo = $data[1];
 

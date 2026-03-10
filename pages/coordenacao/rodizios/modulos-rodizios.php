@@ -13,13 +13,15 @@ if (isset($_GET['periodo'])) {
         $result = $stmt->get_result();
 
         if ($result && $result->num_rows > 0) {
-            echo '<ul>';
+            echo '<div class="d-flex flex-column gap-2">';
             while ($row = $result->fetch_assoc()) {
-                echo '<li data-idmodulo="' . $row['idmodulo'] . '">' . $row['nome_modulo'] . '</li>';
+                echo '<div class="badge-pill-glow badge-info-glow w-100 py-2 justify-content-start" data-idmodulo="' . $row['idmodulo'] . '">';
+                echo '<i class="bi bi-journal-medical me-2"></i>' . htmlspecialchars($row['nome_modulo']);
+                echo '</div>';
             }
-            echo '</ul>';
+            echo '</div>';
         } else {
-            echo '<p>Nenhum módulo disponível para este período</p>';
+            echo '<p class="text-muted small mb-0">Nenhum módulo disponível.</p>';
         }
 
         $stmt->close();
