@@ -52,7 +52,7 @@ Este projeto deu origem a um artigo científico publicado na **Revista Ibero-Ame
 - Três perfis de acesso: **Coordenação**, **Preceptor** e **Aluno**
 - Edição de perfil e alteração de dados pessoais
 - Ativação/desativação de contas
-- Importação em massa via arquivo CSV
+- Importação em massa via arquivo CSV (**usuarios.csv**, **preceptores.csv**, **modulos.csv**)
 
 ### Módulos Curriculares
 
@@ -104,14 +104,15 @@ Este projeto deu origem a um artigo científico publicado na **Revista Ibero-Ame
 
 ## Tecnologias Utilizadas
 
-| Camada        | Tecnologia                                     |
-| ------------- | ---------------------------------------------- |
-| **Back-end**  | PHP 8+                                         |
-| **Banco**     | MySQL (schema `proj_internato`)                |
-| **Front-end** | HTML5 · CSS3 · Bootstrap 5.3 · Bootstrap Icons |
-| **JS**        | SweetAlert2 (alertas e confirmações)           |
-| **E-mail**    | PHPMailer 6.9+                                 |
-| **Servidor**  | Apache (XAMPP / WAMP / LAMP)                   |
+| Camada         | Tecnologia                                     |
+| -------------- | ---------------------------------------------- |
+| **Back-end**   | PHP 8.2+                                       |
+| **Banco**      | MySQL 8.0 (schema `proj_internato`)            |
+| **Container**  | Docker & Docker Compose                        |
+| **Front-end**  | HTML5 · CSS3 · Bootstrap 5.3 · Bootstrap Icons |
+| **JS**         | SweetAlert2 (alertas e confirmações)           |
+| **E-mail**     | PHPMailer 6.9+                                 |
+| **Servidor**   | Apache (integrado via Docker ou XAMPP)         |
 
 ---
 
@@ -121,10 +122,20 @@ Este projeto deu origem a um artigo científico publicado na **Revista Ibero-Ame
 Interdisciplinar-Med/
 ├── index.php                   # Página de login
 ├── composer.json               # Dependências PHP (PHPMailer)
-├── script.txt                  # Script SQL de criação do banco
+├── docker-compose.yml          # Orquestração de containers (App + DB)
+├── Dockerfile                  # Configuração da imagem PHP/Apache
+│
+├── BANCO.sql                   # Script principal de criação do banco
+├── Procedure.sql               # Procedures do sistema
+├── view.sql                    # Views para relatórios e listagens
+├── function.sql                # Funções SQL auxiliares
+├── avaliações.sql              # Script para dados de avaliações
+├── usuarios.csv                # Exemplo para importação de usuários
+├── preceptores.csv             # Exemplo para importação de preceptores
+├── modulos.csv                 # Exemplo para importação de módulos
 │
 ├── cfg/
-│   └── config.php              # Configuração do banco de dados
+│   └── config.php              # Configuração do banco (suporta Env Vars)
 │
 ├── cadastro_e_login/
 │   ├── cadastro.php            # Tela de cadastro de usuário
@@ -239,11 +250,12 @@ erDiagram
 
 ## Pré-requisitos
 
-- **PHP** 8.0 ou superior
-- **MySQL** 5.7+ ou **MariaDB** 10.3+
-- **Apache** com `mod_rewrite` habilitado
-- **Composer** (para gerenciamento de dependências)
-- Ambiente local sugerido: **XAMPP**, **WAMP** ou **LAMP**
+- **Docker** & **Docker Compose** (Recomendado)
+- **OU** ambiente local com:
+  - **PHP** 8.2 ou superior
+  - **MySQL** 8.0+
+  - **Apache** com `mod_rewrite` habilitado
+  - **Composer** (para gerenciamento de dependências)
 
 ---
 
@@ -253,63 +265,47 @@ erDiagram
 
 ```bash
 git clone https://github.com/seu-usuario/Interdisciplinar-Med.git
-```
-
-### 2. Copiar para o diretório do servidor
-
-Mova ou clone a pasta para o diretório raiz do Apache:
-
-```
-# XAMPP (Windows)
-C:\xampp\htdocs\Interdisciplinar-Med\
-
-# LAMP (Linux)
-/var/www/html/Interdisciplinar-Med/
-```
-
-### 3. Instalar dependências
-
-```bash
 cd Interdisciplinar-Med
-composer install
 ```
 
-### 4. Criar o banco de dados
+### 2. Opção A: Docker (Recomendado)
 
-Importe o script SQL no MySQL:
+O projeto já inclui um ambiente Docker pronto para uso. O banco de dados será inicializado automaticamente com todos os scripts necessários.
 
-```bash
-mysql -u root -p < script.txt
-```
+1.  Certifique-se de que o Docker está rodando.
+2.  Execute o comando para subir os containers:
+    ```bash
+    docker-compose up -d --build
+    ```
+3.  Acesse o sistema em: `http://localhost:8080/Interdisciplinar-Med/`
+    - *Nota: O banco de dados estará disponível externamente na porta 3307.*
 
-Ou copie o conteúdo de `script.txt` e execute no **phpMyAdmin**.
+### 3. Opção B: Instalação Manual (XAMPP / WAMP / LAMP)
 
-### 5. Configurar conexão com o banco
-
-Edite o arquivo `cfg/config.php` de acordo com seu ambiente:
-
-```php
-define('HOST', 'localhost');
-define('USER', 'root');
-define('PASS', '');          // sua senha do MySQL
-define('BASE', 'proj_internato');
-define('BASE_URL', '/Interdisciplinar-Med/');
-```
-
-### 6. Acessar o sistema
-
-Abra o navegador e acesse:
-
-```
-http://localhost/Interdisciplinar-Med/
-```
+1.  Mova a pasta para o diretório raiz do Apache (`htdocs` ou `www`).
+2.  Instale as dependências via Composer:
+    ```bash
+    composer install
+    ```
+3.  Crie o banco de dados `proj_internato` e importe os scripts na seguinte ordem:
+    1. `BANCO.sql`
+    2. `Procedure.sql`
+    3. `view.sql`
+    4. `function.sql`
+4.  Configure a conexão em `cfg/config.php`:
+    ```php
+    define('HOST', 'localhost');
+    define('USER', 'root');
+    define('PASS', 'sua_senha');
+    define('BASE', 'proj_internato');
+    ```
 
 ---
 
 ## Uso
 
 1. **Acesse** a tela de login em `index.php`
-2. **Cadastre-se** clicando em "Cadastro" (novo usuário aguarda ativação)
+2. **Cadastre-se** clicando em "Cadastro" (novo usuário aguarda ativação pela coordenação)
 3. **Faça login** com suas credenciais
 4. O sistema redirecionará automaticamente para o painel correspondente ao seu perfil
 
