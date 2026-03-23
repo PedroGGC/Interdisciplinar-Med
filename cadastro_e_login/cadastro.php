@@ -267,7 +267,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                     <div class="auth-form-group">
                         <label for="telefone">Telefone</label>
-                        <input type="text" id="telefone" name="telefone" class="auth-input" placeholder="(00) 00000-0000" required>
+                        <input type="text" id="telefone" name="telefone" class="auth-input" placeholder="(00) 00000-0000" required maxlength="15" onkeyup="handlePhone(event)">
                     </div>
                     <div class="auth-form-group">
                         <label for="registro">RA / CRM</label>
@@ -295,6 +295,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </button>
         </div>
     </div>
+    <script>
+        function handlePhone(event) {
+            let input = event.target;
+            input.value = phoneMask(input.value);
+        }
+
+        function phoneMask(value) {
+            if (!value) return "";
+            value = value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, "($1) $2");
+            value = value.replace(/(\d{5})(\d)/, "$1-$2");
+            return value;
+        }
+    </script>
 </body>
 
 </html>

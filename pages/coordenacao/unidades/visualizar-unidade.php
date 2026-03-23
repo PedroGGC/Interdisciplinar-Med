@@ -110,84 +110,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 ?>
+<?php
+// ... original logic kept ...
+?>
 
-<!DOCTYPE html>
-<html lang="pt-br">
+<style>
+    .container-card {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <title>Visualizar Unidade</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="../../../css/style.css">
-    <style>
+    @media (max-width: 992px) {
         .container-card {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 32px;
+            grid-template-columns: 1fr;
         }
+    }
 
-        @media (max-width: 992px) {
-            .container-card {
-                grid-template-columns: 1fr;
-            }
-        }
+    .scroll-card {
+        max-height: 400px;
+        overflow-y: auto;
+    }
 
-        .scroll-card {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .card-header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: var(--surface-2) !important;
-        }
-    </style>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        function toggleCheckboxes(selectAllCheckbox, checkboxClass) {
-            const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
-            checkboxes.forEach(checkbox => checkbox.checked = selectAllCheckbox.checked);
-        }
+    .card-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--surface-2) !important;
+    }
+</style>
 
-        function submitForm(event, form) {
-            event.preventDefault();
-            const formData = $(form).serialize();
+<script>
+    function toggleCheckboxes(selectAllCheckbox, checkboxClass) {
+        const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
+        checkboxes.forEach(checkbox => checkbox.checked = selectAllCheckbox.checked);
+    }
 
-            $.ajax({
-                type: 'POST',
-                url: 'visualizar-unidade.php?idunidade=<?php echo $idunidade; ?>',
-                data: formData,
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                        location.reload();
-                    } else {
-                        alert(response.message || 'Ocorreu um erro ao processar sua solicitação.');
-                        if (response.redirect) {
-                            window.location.href = response.redirect;
-                        }
+    function submitForm(event, form) {
+        event.preventDefault();
+        const formData = $(form).serialize();
+
+        $.ajax({
+            type: 'POST',
+            url: 'visualizar-unidade.php?idunidade=<?php echo $idunidade; ?>',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message);
+                    location.reload();
+                } else {
+                    alert(response.message || 'Ocorreu um erro ao processar sua solicitação.');
+                    if (response.redirect) {
+                        window.location.href = response.redirect;
                     }
-                },
-                error: function(xhr, status, error) {
-                    alert('Ocorreu um erro ao processar sua solicitação.');
                 }
-            });
-        }
-    </script>
-</head>
-
-<body>
-    <header>
-        <?php include('../../../includes/navbar.php'); ?>
-        <?php include('../../../includes/menu-lateral-coordenacao.php'); ?>
-    </header>
-    <main>
-        <div class="container mt-4">
+            },
+            error: function(xhr, status, error) {
+                alert('Ocorreu um erro ao processar sua solicitação.');
+            }
+        });
+    }
+</script>
             <div class="page-header d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 class="mb-1"><?php echo htmlspecialchars($unidade['nome_unidade']); ?></h2>
@@ -349,14 +334,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
-    <footer>
-        <div class="footer-home rounded-0">
-            <div class="card-body"></div>
-        </div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
