@@ -1,4 +1,4 @@
-# Interdisciplinar-Med — Sistema de Gestão do Internato Médico
+# InterMed — Sistema de Gestão do Internato Médico
 
 Sistema web para gerenciamento do internato médico, incluindo controle de rodízios, avaliações, grupos de alunos, preceptores e unidades de saúde. Desenvolvido em **PHP** com **MySQL** e **Bootstrap 5**.
 
