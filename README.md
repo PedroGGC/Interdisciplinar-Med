@@ -268,7 +268,7 @@ git clone https://github.com/seu-usuario/Interdisciplinar-Med.git
 cd Interdisciplinar-Med
 ```
 
-### 2. Opção A: Docker (Recomendado)
+### 2. Opção A: Docker
 
 O projeto já inclui um ambiente Docker pronto para uso. O banco de dados será inicializado automaticamente com todos os scripts necessários.
 
