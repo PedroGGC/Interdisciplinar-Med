@@ -51,10 +51,10 @@ $preceptores = $conn->query("SELECT DISTINCT idusuario, nome FROM usuarios WHERE
             <!-- Formulário de Filtro -->
             <div class="card mb-4 border-0 shadow-sm">
                 <div class="card-body">
-                    <form method="GET" class="row g-3">
+                    <form method="GET" class="row g-3" id="filterForm">
                         <div class="col-md-2">
                             <label for="dia" class="form-label text-muted small fw-bold">DIA DA SEMANA</label>
-                            <select name="dia" id="dia" class="form-select form-select-sm">
+                            <select name="dia" id="dia" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">Todos</option>
                                 <option value="Segunda" <?php if ($filterDia == 'Segunda') echo 'selected'; ?>>Segunda</option>
                                 <option value="Terça" <?php if ($filterDia == 'Terça') echo 'selected'; ?>>Terça</option>
@@ -67,7 +67,7 @@ $preceptores = $conn->query("SELECT DISTINCT idusuario, nome FROM usuarios WHERE
                         </div>
                         <div class="col-md-2">
                             <label for="unidade" class="form-label text-muted small fw-bold">UNIDADE</label>
-                            <select name="unidade" id="unidade" class="form-select form-select-sm">
+                            <select name="unidade" id="unidade" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">Todas</option>
                                 <?php mysqli_data_seek($unidades, 0); while ($row = $unidades->fetch_assoc()): ?>
                                     <option value="<?php echo $row['nome_unidade']; ?>" <?php if ($filterUnidade == $row['nome_unidade']) echo 'selected'; ?>>
@@ -78,7 +78,7 @@ $preceptores = $conn->query("SELECT DISTINCT idusuario, nome FROM usuarios WHERE
                         </div>
                         <div class="col-md-2">
                             <label for="subgrupo" class="form-label text-muted small fw-bold">SUBGRUPO</label>
-                            <select name="subgrupo" id="subgrupo" class="form-select form-select-sm">
+                            <select name="subgrupo" id="subgrupo" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">Todos</option>
                                 <?php mysqli_data_seek($subgrupos, 0); while ($row = $subgrupos->fetch_assoc()): ?>
                                     <option value="<?php echo $row['nome_subgrupo']; ?>" <?php if ($filterSubgrupo == $row['nome_subgrupo']) echo 'selected'; ?>>
@@ -89,7 +89,7 @@ $preceptores = $conn->query("SELECT DISTINCT idusuario, nome FROM usuarios WHERE
                         </div>
                         <div class="col-md-2">
                             <label for="modulo" class="form-label text-muted small fw-bold">MÓDULO</label>
-                            <select name="modulo" id="modulo" class="form-select form-select-sm">
+                            <select name="modulo" id="modulo" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">Todos</option>
                                 <?php mysqli_data_seek($modulos, 0); while ($row = $modulos->fetch_assoc()): ?>
                                     <option value="<?php echo $row['nome_modulo']; ?>" <?php if ($filterModulo == $row['nome_modulo']) echo 'selected'; ?>>
@@ -100,7 +100,7 @@ $preceptores = $conn->query("SELECT DISTINCT idusuario, nome FROM usuarios WHERE
                         </div>
                         <div class="col-md-2">
                             <label for="preceptor" class="form-label text-muted small fw-bold">PRECEPTOR</label>
-                            <select name="preceptor" id="preceptor" class="form-select form-select-sm">
+                            <select name="preceptor" id="preceptor" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">Todos</option>
                                 <?php mysqli_data_seek($preceptores, 0); while ($row = $preceptores->fetch_assoc()): ?>
                                     <option value="<?php echo $row['nome']; ?>" <?php if ($filterPreceptor == $row['nome']) echo 'selected'; ?>>
@@ -110,8 +110,7 @@ $preceptores = $conn->query("SELECT DISTINCT idusuario, nome FROM usuarios WHERE
                             </select>
                         </div>
                         <div class="col-md-2 d-flex align-items-end gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1"><i class="bi bi-search"></i></button>
-                            <a href="horarios.php" class="btn btn-secondary btn-sm"><i class="bi bi-x-circle"></i></a>
+                        <a href="horarios.php" class="btn btn-secondary btn-sm" title="Limpar filtros"><i class="bi bi-x-circle"></i></a>
                         </div>
                     </form>
                 </div>

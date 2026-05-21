@@ -473,6 +473,15 @@ main {
   font-weight: 600;
 }
 
+/* ── Modal z-index fix — garante que modal fica acima de navbar/sidebar fixos ── */
+.modal-backdrop {
+  z-index: 1055 !important;
+}
+
+.modal {
+  z-index: 1060 !important;
+}
+
 .modal-content {
   background: var(--surface);
   border: 1px solid var(--border);
